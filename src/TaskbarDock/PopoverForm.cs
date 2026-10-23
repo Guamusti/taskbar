@@ -605,6 +605,7 @@ namespace TaskbarDock
     internal sealed class SliderWidget : PopoverWidget
     {
         public string Label;
+        public Image Icon;
         public string Glyph;
         public float Value;
         public Action<float> Changed;
@@ -633,7 +634,15 @@ namespace TaskbarDock
             float top = Bounds.Top;
             if (!string.IsNullOrEmpty(Label))
             {
-                DrawText(graphics, Label, Fonts.BodyBold, Text, new RectangleF(Bounds.Left, top, Bounds.Width, 18 * S));
+                float labelLeft = Bounds.Left;
+                if (Icon != null)
+                {
+                    float size = 16 * S;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.DrawImage(Icon, labelLeft, top + 1 * S, size, size);
+                    labelLeft += size + 7 * S;
+                }
+                DrawText(graphics, Label, Fonts.BodyBold, Text, new RectangleF(labelLeft, top, Bounds.Right - labelLeft, 18 * S));
                 top += 22 * S;
             }
             track = new RectangleF(Bounds.Left, top + 2 * S, Bounds.Width, 24 * S);

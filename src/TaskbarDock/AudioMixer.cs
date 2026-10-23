@@ -9,6 +9,7 @@ namespace TaskbarDock
     {
         public int ProcessId;
         public string Name;
+        public System.Drawing.Image Icon;
         public float Volume;
         public bool Muted;
     }
@@ -135,10 +136,12 @@ namespace TaskbarDock
                     bool muted;
                     volume.GetMasterVolume(out level);
                     volume.GetMute(out muted);
+                    string path = ExecutablePath(processId);
                     byProcess[processId] = new AppAudioSession
                     {
                         ProcessId = processId,
-                        Name = AppName(processId, session),
+                        Name = AppName(processId, session, path),
+                        Icon = AppIcon(path),
                         Volume = level,
                         Muted = muted
                     };
@@ -213,26 +216,116 @@ namespace TaskbarDock
             catch (Exception) { }
         }
 
-        private static string AppName(int processId, IAudioSessionControl2 session)
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint access, bool inherit, int processId);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern bool QueryFullProcessImageName(IntPtr process, int flags,
+            System.Text.StringBuilder path, ref int size);
+
+        /// <summary>
+        /// The executable path. Works with limited rights, unlike Process.MainModule, which
+        /// fails for many processes and left only names like "wallpaper64".
+        /// </summary>
+        internal static string ExecutablePath(int processId)
         {
+            const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+            IntPtr handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+            if (handle == IntPtr.Zero)
+                return null;
+            try
+            {
+                var buffer = new System.Text.StringBuilder(1024);
+                int size = buffer.Capacity;
+                return QueryFullProcessImageName(handle, 0, buffer, ref size) ? buffer.ToString() : null;
+            }
+            finally
+            {
+                CloseHandle(handle);
+            }
+        }
+
+        private static string AppName(int processId, IAudioSessionControl2 session, string path)
+        {
+            string display;
+            if (session.GetDisplayName(out display) == 0 && !string.IsNullOrWhiteSpace(display) && !display.StartsWith("@"))
+                return display.Trim();
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Store apps (Apple Music, WhatsApp…): the package's own display name.
+                string packaged = PackageDisplayName(path);
+                if (!string.IsNullOrEmpty(packaged))
+                    return packaged;
+                try
+                {
+                    FileVersionInfo info = FileVersionInfo.GetVersionInfo(path);
+                    foreach (string candidate in new[] { info.FileDescription, info.ProductName })
+                        if (!string.IsNullOrWhiteSpace(candidate) && candidate.IndexOf(".exe", StringComparison.OrdinalIgnoreCase) < 0)
+                            return candidate.Trim();
+                }
+                catch (Exception) { }
+                return System.IO.Path.GetFileNameWithoutExtension(path);
+            }
             try
             {
                 using (Process process = Process.GetProcessById(processId))
-                {
-                    string description = null;
-                    try { description = process.MainModule.FileVersionInfo.FileDescription; }
-                    catch (Exception) { }
-                    if (!string.IsNullOrWhiteSpace(description))
-                        return description.Trim();
-                    string display;
-                    if (session.GetDisplayName(out display) == 0 && !string.IsNullOrWhiteSpace(display) && !display.StartsWith("@"))
-                        return display;
                     return process.ProcessName;
-                }
             }
             catch (Exception)
             {
                 return "Proceso " + processId;
+            }
+        }
+
+        /// <summary>Reads DisplayName from the AppxManifest of a packaged app, when readable.</summary>
+        private static string PackageDisplayName(string path)
+        {
+            int index = path.IndexOf(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return null;
+            try
+            {
+                string rest = path.Substring(index + @"\WindowsApps\".Length);
+                string packageFolder = rest.Split('\\')[0];
+                string root = path.Substring(0, index + @"\WindowsApps\".Length) + packageFolder;
+                string manifest = System.IO.Path.Combine(root, "AppxManifest.xml");
+                if (System.IO.File.Exists(manifest))
+                {
+                    var document = new System.Xml.XmlDocument();
+                    document.Load(manifest);
+                    foreach (System.Xml.XmlNode node in document.GetElementsByTagName("DisplayName"))
+                        if (!string.IsNullOrWhiteSpace(node.InnerText) && !node.InnerText.StartsWith("ms-resource:"))
+                            return node.InnerText.Trim();
+                }
+                // Fall back to the package name: "AppleInc.AppleMusicWin_1.0…" → "Apple Music Win".
+                string name = packageFolder.Split('_')[0];
+                name = name.Substring(name.LastIndexOf('.') + 1);
+                name = System.Text.RegularExpressions.Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ");
+                // Platform suffixes such as "AppleMusicWin" or "SpotifyWindows" add nothing.
+                return System.Text.RegularExpressions.Regex.Replace(name, " (Win|Windows|Desktop|App)$", string.Empty);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static System.Drawing.Image AppIcon(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return null;
+            try
+            {
+                using (System.Drawing.Icon icon = System.Drawing.Icon.ExtractAssociatedIcon(path))
+                    return icon == null ? null : icon.ToBitmap();
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
     }

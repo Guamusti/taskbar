@@ -75,7 +75,7 @@ namespace TaskbarDock
                 });
             }
             AddVolume(panel, "Sonido");
-            AddMixer(panel);
+            AddMixerEntry(panel, BuildControlCenter);
             panel.Add(new MediaWidget());
             panel.Add(new SeparatorWidget());
             panel.Add(new RowWidget
@@ -89,7 +89,7 @@ namespace TaskbarDock
         public static void BuildVolume(PopoverForm panel)
         {
             AddVolume(panel, "Sonido");
-            AddMixer(panel);
+            AddMixerEntry(panel, BuildVolume);
             panel.Add(new MediaWidget());
             panel.Add(new SeparatorWidget());
             panel.Add(new RowWidget
@@ -100,20 +100,56 @@ namespace TaskbarDock
             });
         }
 
-        /// <summary>One slider per app that is playing sound, like the Volume Mixer.</summary>
-        private static void AddMixer(PopoverForm panel)
+        /// <summary>
+        /// A "Mezclador de aplicaciones ›" row that opens the per-app mixer in place, with a
+        /// way back to <paramref name="rebuildParent"/>.
+        /// </summary>
+        private static void AddMixerEntry(PopoverForm panel, Action<PopoverForm> rebuildParent)
         {
+            int count = AudioMixer.List().Count;
+            panel.Add(new RowWidget
+            {
+                Glyph = "",
+                Label = "Mezclador de aplicaciones",
+                Value = (count == 1 ? "1 app" : count + " apps") + "  ›",
+                Click = delegate
+                {
+                    panel.Clear();
+                    BuildMixer(panel, rebuildParent);
+                    panel.Invalidate();
+                }
+            });
+        }
+
+        /// <summary>One slider per app that is playing sound, like the Volume Mixer.</summary>
+        private static void BuildMixer(PopoverForm panel, Action<PopoverForm> rebuildParent)
+        {
+            panel.Add(new RowWidget
+            {
+                Glyph = "",
+                Label = "Mezclador de aplicaciones",
+                Click = delegate
+                {
+                    panel.Clear();
+                    rebuildParent(panel);
+                    panel.Invalidate();
+                }
+            });
+            panel.Add(new SeparatorWidget());
             List<AppAudioSession> sessions = AudioMixer.List();
             if (sessions.Count == 0)
+            {
+                panel.Add(new TextWidget { Title = "Ninguna aplicación está usando el sonido ahora.", Dim = true });
                 return;
-            panel.Add(new TextWidget { Title = "Aplicaciones", Dim = true }).SpacingAfter = 2;
-            foreach (AppAudioSession session in sessions.Take(8))
+            }
+            foreach (AppAudioSession session in sessions.Take(10))
             {
                 int processId = session.ProcessId;
                 bool muted = session.Muted;
                 panel.Add(new SliderWidget
                 {
                     Label = session.Name,
+                    Icon = session.Icon,
                     Value = session.Volume,
                     GlyphFor = value => VolumeGlyph(value, muted),
                     Changed = value => AudioMixer.SetVolume(processId, value),

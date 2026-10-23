@@ -42,6 +42,14 @@ privilegios de administrador.
   - **Límites de uso**: consumo de Claude y Codex (ventana de 5 h y semanal).
 - Se oculta en pantalla completa.
 
+## Descargar
+
+El ejecutable listo para usar está en [`dist/TaskbarDock.exe`](dist/TaskbarDock.exe).
+Descárgalo y ejecútalo; no necesita instalación ni privilegios de administrador
+(requiere Windows 11 con .NET Framework 4.8, incluido en el sistema). Windows
+SmartScreen puede avisar la primera vez por no estar firmado: «Más información» →
+«Ejecutar de todas formas».
+
 ## Compilar
 
 En PowerShell:
