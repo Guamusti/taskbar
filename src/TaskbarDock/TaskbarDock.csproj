@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{B7C58A44-78FC-45CC-987E-BD2AD63C41F0}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TaskbarDock</RootNamespace>
+    <AssemblyName>TaskbarDock</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\build\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\build\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Runtime.WindowsRuntime" />
+    <Reference Include="Windows">
+      <HintPath>$(WINDIR)\System32\WinMetadata\Windows.Foundation.winmd</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AppTrace.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="AudioMixer.cs" />
+    <Compile Include="DockApplicationContext.cs" />
+    <Compile Include="DockOverlayForm.cs" />
+    <Compile Include="DockSettings.cs" />
+    <Compile Include="EdgeSmootherForm.cs" />
+    <Compile Include="FloatingTaskbarEngine.cs" />
+    <Compile Include="LayeredCanvas.cs" />
+    <Compile Include="MenuBarForm.cs" />
+    <Compile Include="PopoverForm.cs" />
+    <Compile Include="SystemControls.cs" />
+    <Compile Include="SystemPanels.cs" />
+    <Compile Include="UsageProviders.cs" />
+    <Compile Include="NativeMethods.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="SettingsForm.cs" />
+    <Compile Include="SettingsStore.cs" />
+    <Compile Include="ShellIconLoader.cs" />
+    <Compile Include="TaskbarButtonSource.cs" />
+    <Compile Include="TaskbarMonitor.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
